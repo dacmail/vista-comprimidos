@@ -10,7 +10,7 @@ que ya incluye macOS.
 
 Necesitas macOS 13 o posterior. Funciona en Macs con chip Apple y en Macs Intel.
 
-1. Descarga `Vista-de-Comprimidos-x.y.z.zip` desde
+1. Descarga `Vista-de-Comprimidos.zip` desde la [página de descarga](https://dacmail.github.io/vista-comprimidos/) o desde
    [Releases](../../releases/latest) y descomprímelo.
 2. Mueve **Vista de Comprimidos.app** a la carpeta **Aplicaciones**. Hazlo antes de
    abrirla.

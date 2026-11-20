@@ -10,7 +10,7 @@ cd "$(dirname "$0")"
 
 APP_NAME="Vista de Comprimidos"
 BUNDLE_ID="local.archivepreview"
-VERSION="1.0.1"
+VERSION="1.0.2"
 MIN_MACOS="13.0"
 ARCHS=(arm64 x86_64)
 INSTALL_DIR="$HOME/Applications"
@@ -87,7 +87,7 @@ case "${1:-build}" in
         ;;
     release)
         build_app
-        ZIP="$BUILD/release/Vista-de-Comprimidos-$VERSION.zip"
+        ZIP="$BUILD/release/Vista-de-Comprimidos.zip"   # nombre fijo: el enlace releases/latest/download/… siempre funciona
         rm -rf "$BUILD/release" && mkdir -p "$BUILD/release"
         # ditto conserva firma y atributos del bundle (zip -r puede romperlos).
         ditto -c -k --keepParent "$APP" "$ZIP"

@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vista de Comprimidos</title>
+<meta name="description" content="Pulsa espacio sobre un ZIP, RAR o 7z en el Finder y mira lo que hay dentro sin descomprimir. Gratis y de código abierto.">
+<meta property="og:title" content="Vista de Comprimidos">
+<meta property="og:description" content="Mira dentro de ZIP, RAR, 7z y tar con la barra espaciadora del Finder.">
+<meta property="og:image" content="https://dacmail.github.io/vista-comprimidos/icon.png">
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08090a;
+    --fg: #f7f8f8;
+    --muted: #8a8f98;
+    --faint: #62666d;
+    --line: rgba(255, 255, 255, 0.08);
+    --card: rgba(255, 255, 255, 0.03);
+    --blue: #3b82f6;
+    --blue-soft: rgba(59, 130, 246, 0.35);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* Fondo: resplandor azul y rejilla que se desvanece */
+  .bg {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(60% 45% at 50% 0%, rgba(59, 130, 246, 0.22), transparent 70%),
+      radial-gradient(40% 30% at 50% 8%, rgba(147, 197, 253, 0.10), transparent 70%);
+  }
+  .bg::after {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(70% 55% at 50% 0%, #000 20%, transparent 75%);
+    -webkit-mask-image: radial-gradient(70% 55% at 50% 0%, #000 20%, transparent 75%);
+    opacity: 0.6;
+  }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+
+  /* Animación de entrada: sube, se enfoca y aparece (escalonada con --i) */
+  .reveal {
+    opacity: 0;
+    animation: reveal 1s var(--ease) forwards;
+    animation-delay: calc(var(--i, 0) * 90ms + 100ms);
+  }
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(18px); filter: blur(8px); }
+    to   { opacity: 1; transform: none; filter: blur(0); }
+  }
+
+  /* Hero */
+  .hero { text-align: center; padding: 72px 0 56px; }
+  .icon-wrap { position: relative; width: 232px; height: 232px; margin: 0 auto 28px; }
+  .icon-wrap::before {
+    content: ""; position: absolute; inset: 12%; border-radius: 40%;
+    background: var(--blue-soft); filter: blur(48px);
+    animation: glow 6s ease-in-out infinite;
+  }
+  .icon-wrap img {
+    position: relative; width: 100%; height: 100%;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes glow { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 12px 5px 8px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--card);
+    color: var(--muted); font-size: 13px; margin-bottom: 24px;
+  }
+  .pill b {
+    background: rgba(59, 130, 246, 0.16); color: #93c5fd;
+    font-weight: 500; padding: 1px 8px; border-radius: 999px; font-size: 12px;
+  }
+  h1 {
+    font-size: clamp(40px, 7vw, 72px); line-height: 1.05; letter-spacing: -0.035em; font-weight: 600;
+    background: linear-gradient(180deg, #fff 30%, rgba(255, 255, 255, 0.55));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    padding-bottom: 6px;
+  }
+  .lead {
+    max-width: 560px; margin: 20px auto 0;
+    font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); letter-spacing: -0.01em;
+  }
+  .lead kbd {
+    font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.85em; color: var(--fg);
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+    padding: 1px 7px; background: var(--card);
+  }
+
+  .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 40px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    height: 48px; padding: 0 22px; border-radius: 12px;
+    font-weight: 500; font-size: 15px; letter-spacing: -0.01em;
+    transition: transform .2s var(--ease), background .2s, border-color .2s, box-shadow .2s;
+  }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--fg); color: #08090a;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 8px 32px -8px rgba(59,130,246,.6);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(255,255,255,.2), 0 12px 40px -8px rgba(59,130,246,.8); }
+  .btn-secondary { border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  .btn-secondary:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.16); transform: translateY(-1px); }
+  .meta { margin-top: 18px; font-size: 13px; color: var(--faint); }
+
+  /* Ventana de ejemplo */
+  .window {
+    margin: 32px auto 0; max-width: 760px; text-align: left;
+    border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    box-shadow: 0 40px 120px -40px rgba(59,130,246,.45), 0 0 0 1px rgba(0,0,0,.4);
+    opacity: 0;
+    animation: rise 1.4s var(--ease) forwards; animation-delay: 650ms;
+    transform-origin: 50% 0;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: perspective(1400px) rotateX(18deg) translateY(40px); }
+    to   { opacity: 1; transform: perspective(1400px) rotateX(0) translateY(0); }
+  }
+  .titlebar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #3a3c40; }
+  .titlebar span { margin-left: 8px; font-size: 13px; color: var(--muted); }
+  .win-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+  .win-head strong { font-size: 17px; font-weight: 600; }
+  .win-head .sub { color: var(--muted); font-size: 13px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; }
+  .rows { font-size: 13px; }
+  .row {
+    display: grid; grid-template-columns: minmax(0, 1fr) 80px 130px; gap: 12px;
+    padding: 6px 20px 6px calc(20px + var(--d, 0) * 20px); border-bottom: 1px solid rgba(255,255,255,.04);
+    opacity: 0; animation: reveal .8s var(--ease) forwards;
+    animation-delay: calc(1100ms + var(--r, 0) * 60ms);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .s, .row .t { text-align: right; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .row.dir .n { font-weight: 500; }
+  .row.head { opacity: 1; animation: none; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+
+  /* Secciones */
+  section { padding: 96px 0 0; }
+  .eyebrow { text-align: center; font-size: 13px; color: #93c5fd; font-weight: 500; letter-spacing: .02em; }
+  h2 {
+    text-align: center; font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.03em; font-weight: 600;
+    line-height: 1.15; margin-top: 10px;
+  }
+  .sec-lead { text-align: center; color: var(--muted); max-width: 520px; margin: 14px auto 0; }
+
+  .formats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 32px; max-width: 760px; margin-inline: auto; }
+  .formats span {
+    font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px;
+    border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 6px 12px; color: var(--fg);
+    transition: border-color .2s, background .2s, transform .2s var(--ease);
+  }
+  .formats span:hover { border-color: rgba(59,130,246,.5); background: rgba(59,130,246,.08); transform: translateY(-2px); }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 40px; }
+  .step { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 24px; }
+  .step .num {
+    width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+    background: rgba(59,130,246,.15); color: #93c5fd; font-size: 13px; font-weight: 600; margin-bottom: 16px;
+  }
+  .step h3 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .step p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .note { text-align: center; color: var(--faint); font-size: 13px; margin-top: 20px; }
+  .note code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; color: var(--muted); }
+
+  /* Aparición al hacer scroll */
+  .on-scroll { opacity: 0; transform: translateY(24px); filter: blur(6px); transition: opacity 1s var(--ease), transform 1s var(--ease), filter 1s var(--ease); transition-delay: calc(var(--i, 0) * 80ms); }
+  .on-scroll.in { opacity: 1; transform: none; filter: none; }
+
+  /* Pie */
+  footer { margin-top: 120px; border-top: 1px solid var(--line); }
+  .foot { max-width: 1040px; margin: 0 auto; padding: 40px 16px 56px; display: flex; justify-content: space-between; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .author { display: flex; flex-direction: column; gap: 4px; }
+  .author strong { font-weight: 600; letter-spacing: -0.01em; }
+  .author span { color: var(--muted); font-size: 14px; max-width: 340px; }
+  .links { display: flex; flex-wrap: wrap; gap: 6px 22px; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; }
+  .links a { color: var(--muted); transition: color .2s; }
+  .links a i { font-style: normal; color: var(--faint); }
+  .links a:hover { color: var(--fg); }
+  .links a:hover i { color: #93c5fd; }
+
+  @media (max-width: 720px) {
+    .hero { padding-top: 64px; }
+    .icon-wrap { width: 176px; height: 176px; }
+    .steps { grid-template-columns: 1fr; }
+    .row { grid-template-columns: minmax(0, 1fr) 70px; padding-left: calc(14px + var(--d, 0) * 14px); padding-right: 14px; }
+    .row .t { display: none; }
+    .btn { width: 100%; justify-content: center; }
+    .actions { max-width: 360px; margin-inline: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal, .window, .row, .on-scroll { opacity: 1 !important; transform: none !important; filter: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<main>
+  <header class="hero">
+    <div class="icon-wrap reveal" style="--i:0"><img src="icon.png" alt="Icono de Vista de Comprimidos" width="232" height="232"></div>
+    <div class="pill reveal" style="--i:1"><b>Gratis</b> Extensión de Vista Rápida para macOS</div>
+    <h1 class="reveal" style="--i:2">Vista de Comprimidos</h1>
+    <p class="lead reveal" style="--i:3">Pulsa <kbd>espacio</kbd> sobre un ZIP, RAR o 7z en el Finder y mira lo que hay dentro, sin descomprimir nada.</p>
+    <div class="actions reveal" style="--i:4">
+      <a class="btn btn-primary" href="https://github.com/dacmail/vista-comprimidos/releases/latest/download/Vista-de-Comprimidos.zip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Descargar para Mac
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/dacmail/vista-comprimidos">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+        Ver en GitHub
+      </a>
+    </div>
+    <p class="meta reveal" style="--i:5">macOS 13 o posterior · Apple Silicon e Intel · Código abierto (MIT)</p>
+
+    <div class="window" aria-hidden="true">
+      <div class="titlebar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>proyecto-final.zip</span></div>
+      <div class="win-head">
+        <strong>🗜️ proyecto-final.zip</strong>
+        <div class="sub">ZIP</div>
+        <div class="chips"><span class="chip">24 archivos</span><span class="chip">5 carpetas</span><span class="chip">18,4 MB descomprimido</span><span class="chip">6,1 MB en disco (33 %)</span></div>
+      </div>
+      <div class="rows">
+        <div class="row head"><span>Nombre</span><span class="s">Tamaño</span><span class="t">Modificado</span></div>
+        <div class="row dir" style="--r:0"><span class="n">▾ 📁 diseño</span><span class="s">12,2 MB</span><span class="t">18/11/2026 19:42</span></div>
+        <div class="row" style="--d:1;--r:1"><span class="n">🖼️ portada.png</span><span class="s">4,8 MB</span><span class="t">18/11/2026 19:40</span></div>
+        <div class="row" style="--d:1;--r:2"><span class="n">🖼️ mockup-movil.png</span><span class="s">7,4 MB</span><span class="t">18/11/2026 19:42</span></div>
+        <div class="row dir" style="--r:3"><span class="n">▾ 📁 src</span><span class="s">212 KB</span><span class="t">19/11/2026 10:05</span></div>
+        <div class="row" style="--d:1;--r:4"><span class="n">📜 app.js</span><span class="s">48 KB</span><span class="t">19/11/2026 10:05</span></div>
+        <div class="row" style="--d:1;--r:5"><span class="n">📜 estilos.css</span><span class="s">16 KB</span><span class="t">19/11/2026 09:51</span></div>
+        <div class="row" style="--r:6"><span class="n">📕 presupuesto.pdf 🔒</span><span class="s">1,2 MB</span><span class="t">17/11/2026 12:30</span></div>
+        <div class="row" style="--r:7"><span class="n">📝 LEEME.md</span><span class="s">3 KB</span><span class="t">19/11/2026 10:12</span></div>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <p class="eyebrow on-scroll">Formatos</p>
+    <h2 class="on-scroll" style="--i:1">Casi cualquier comprimido</h2>
+    <p class="sec-lead on-scroll" style="--i:2">Usa la libarchive de macOS, así que lee mucho más que ZIP.</p>
+    <div class="formats">
+      <span class="on-scroll" style="--i:0">zip</span><span class="on-scroll" style="--i:1">rar</span><span class="on-scroll" style="--i:2">7z</span>
+      <span class="on-scroll" style="--i:3">tar</span><span class="on-scroll" style="--i:4">tar.gz</span><span class="on-scroll" style="--i:5">tar.bz2</span>
+      <span class="on-scroll" style="--i:6">tar.xz</span><span class="on-scroll" style="--i:7">tar.zst</span><span class="on-scroll" style="--i:8">gz</span>
+      <span class="on-scroll" style="--i:9">iso</span><span class="on-scroll" style="--i:10">cab</span><span class="on-scroll" style="--i:11">cpio</span>
+      <span class="on-scroll" style="--i:12">xar</span><span class="on-scroll" style="--i:13">deb</span><span class="on-scroll" style="--i:14">rpm</span>
+      <span class="on-scroll" style="--i:15">jar</span><span class="on-scroll" style="--i:16">apk</span><span class="on-scroll" style="--i:17">cbz</span>
+      <span class="on-scroll" style="--i:18">cbr</span><span class="on-scroll" style="--i:19">lzh</span>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow on-scroll">Instalación</p>
+    <h2 class="on-scroll" style="--i:1">Tres pasos, una sola vez</h2>
+    <p class="sec-lead on-scroll" style="--i:2">La app no está firmada por Apple, así que la primera vez hay que darle permiso.</p>
+    <div class="steps">
+      <div class="step on-scroll" style="--i:0"><div class="num">1</div><h3>Descarga y mueve</h3><p>Descomprime el zip y arrastra la app a la carpeta Aplicaciones.</p></div>
+      <div class="step on-scroll" style="--i:1"><div class="num">2</div><h3>Ábrela y da permiso</h3><p>Ábrela; cuando macOS avise, ve a Ajustes del Sistema → Privacidad y seguridad → <em>Abrir igualmente</em>.</p></div>
+      <div class="step on-scroll" style="--i:2"><div class="num">3</div><h3>Pulsa espacio</h3><p>Selecciona cualquier comprimido en el Finder y pulsa la barra espaciadora.</p></div>
+    </div>
+    <p class="note on-scroll">¿No aparece? Ejecuta <code>xattr -dr com.apple.quarantine "/Applications/Vista de Comprimidos.app"</code> y vuelve a abrirla.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="foot">
+    <div class="author">
+      <strong>Hecho por <a href="https://soydac.com">Daniel Aguilar</a></strong>
+      <span>Freelance de desarrollo frontend y backend. Especialista en WordPress.</span>
+    </div>
+    <nav class="links" aria-label="Redes">
+      <a href="https://soydac.com"><i>web/</i>soydac</a>
+      <a href="http://ungrynerd.com/"><i>portfolio/</i>ungrynerd</a>
+      <a href="https://github.com/dacmail"><i>github/</i>@dacmail</a>
+      <a href="https://twitter.com/dacmail"><i>twitter/</i>@dacmail</a>
+      <a href="https://linkedin.com/in/dacmail"><i>linkedin/</i>@dacmail</a>
+      <a href="mailto:hola@soydac.com"><i>email/</i>hola@soydac.com</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Revela los elementos .on-scroll al entrar en pantalla.
+  (function () {
+    var items = document.querySelectorAll('.on-scroll');
+    if (!('IntersectionObserver' in window)) { items.forEach(function (el) { el.classList.add('in'); }); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    items.forEach(function (el) { io.observe(el); });
+  })();
+</script>
+</body>
+</html>
