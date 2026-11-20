@@ -1,0 +1,46 @@
+{
+  "_comment": "Lista de formatos que maneja la extensión. Es la única fuente de verdad: build.sh genera a partir de aquí los Info.plist (tipos que acepta Vista Rápida y tipos nuevos que se declaran al sistema). Campos: id (único), name (texto que se muestra), reader (motor en Swift, ver ReaderRegistry), extensions (sin punto; se admiten compuestas como tar.gz), types (UTIs que ya conoce macOS), declare (opcional: UTI nuevo que declara la app para extensiones que macOS no conoce).",
+  "formats": [
+    { "id": "zip",  "name": "ZIP",            "reader": "libarchive", "extensions": ["zip"],             "types": ["public.zip-archive", "com.pkware.zip-archive"] },
+    { "id": "jar",  "name": "Java (JAR/WAR)", "reader": "libarchive", "extensions": ["jar", "war"],      "types": ["com.sun.java-archive", "com.sun.web-application-archive"] },
+    { "id": "7z",   "name": "7-Zip",          "reader": "libarchive", "extensions": ["7z"],              "types": ["org.7-zip.7-zip-archive"] },
+    { "id": "rar",  "name": "RAR",            "reader": "libarchive", "extensions": ["rar"],             "types": ["com.rarlab.rar-archive"] },
+
+    { "id": "tar",  "name": "tar",            "reader": "libarchive", "extensions": ["tar"],             "types": ["public.tar-archive", "org.gnu.gnu-tar-archive"] },
+    { "id": "tgz",  "name": "tar + gzip",     "reader": "libarchive", "extensions": ["tar.gz", "tgz"],   "types": ["org.gnu.gnu-zip-tar-archive"] },
+    { "id": "tbz",  "name": "tar + bzip2",    "reader": "libarchive", "extensions": ["tar.bz2", "tbz", "tbz2"], "types": ["public.tar-bzip2-archive"] },
+    { "id": "txz",  "name": "tar + xz",       "reader": "libarchive", "extensions": ["tar.xz", "txz"],   "types": ["org.tukaani.tar-xz-archive"] },
+    { "id": "tlz4", "name": "tar + LZ4",      "reader": "libarchive", "extensions": ["tar.lz4"],         "types": [] },
+    { "id": "tzst", "name": "tar + zstd",     "reader": "libarchive", "extensions": ["tar.zst", "tzst"],
+      "types": [], "declare": { "identifier": "local.archivepreview.tar-zstd", "description": "Archivo tar comprimido con zstd", "conformsTo": ["public.archive", "public.data"] } },
+
+    { "id": "gz",   "name": "gzip",           "reader": "libarchive", "extensions": ["gz"],              "types": ["org.gnu.gnu-zip-archive"] },
+    { "id": "bz2",  "name": "bzip2",          "reader": "libarchive", "extensions": ["bz2"],             "types": ["public.bzip2-archive"] },
+    { "id": "xz",   "name": "xz",             "reader": "libarchive", "extensions": ["xz"],              "types": ["org.tukaani.xz-archive"] },
+    { "id": "lzma", "name": "LZMA",           "reader": "libarchive", "extensions": ["lzma"],            "types": ["org.tukaani.lzma-archive"] },
+    { "id": "z",    "name": "compress (.Z)",  "reader": "libarchive", "extensions": ["z"],               "types": ["public.z-archive"] },
+    { "id": "zst",  "name": "Zstandard",      "reader": "libarchive", "extensions": ["zst"],
+      "types": [], "declare": { "identifier": "local.archivepreview.zstd", "description": "Archivo comprimido Zstandard", "conformsTo": ["public.archive", "public.data"] } },
+    { "id": "lz4",  "name": "LZ4",            "reader": "libarchive", "extensions": ["lz4"],
+      "types": [], "declare": { "identifier": "local.archivepreview.lz4", "description": "Archivo comprimido LZ4", "conformsTo": ["public.archive", "public.data"] } },
+
+    { "id": "cab",  "name": "Microsoft CAB",  "reader": "libarchive", "extensions": ["cab"],             "types": ["com.microsoft.cab"] },
+    { "id": "lha",  "name": "LHA/LZH",        "reader": "libarchive", "extensions": ["lha", "lzh"],      "types": ["cx.c3.lha-archive"] },
+    { "id": "cpio", "name": "cpio",           "reader": "libarchive", "extensions": ["cpio"],            "types": ["public.cpio-archive"] },
+    { "id": "xar",  "name": "xar",            "reader": "libarchive", "extensions": ["xar"],             "types": ["com.apple.xar-archive"] },
+    { "id": "iso",  "name": "Imagen ISO",     "reader": "libarchive", "extensions": ["iso"],             "types": ["public.iso-image"] },
+    { "id": "deb",  "name": "Paquete Debian", "reader": "libarchive", "extensions": ["deb"],             "types": ["org.debian.deb-archive"] },
+    { "id": "rpm",  "name": "Paquete RPM",    "reader": "libarchive", "extensions": ["rpm"],             "types": ["com.redhat.rpm-archive"] },
+
+    { "id": "cbz",  "name": "Cómic (CBZ)",    "reader": "libarchive", "extensions": ["cbz"],
+      "types": [], "declare": { "identifier": "local.archivepreview.cbz", "description": "Cómic (ZIP)", "conformsTo": ["public.zip-archive", "public.archive", "public.data"] } },
+    { "id": "cbr",  "name": "Cómic (CBR)",    "reader": "libarchive", "extensions": ["cbr"],
+      "types": [], "declare": { "identifier": "local.archivepreview.cbr", "description": "Cómic (RAR)", "conformsTo": ["public.archive", "public.data"] } },
+    { "id": "cb7",  "name": "Cómic (CB7)",    "reader": "libarchive", "extensions": ["cb7"],
+      "types": [], "declare": { "identifier": "local.archivepreview.cb7", "description": "Cómic (7-Zip)", "conformsTo": ["public.archive", "public.data"] } },
+    { "id": "apk",  "name": "Android (APK)",  "reader": "libarchive", "extensions": ["apk"],
+      "types": [], "declare": { "identifier": "local.archivepreview.apk", "description": "Paquete de Android", "conformsTo": ["public.zip-archive", "public.archive", "public.data"] } },
+    { "id": "whl",  "name": "Python wheel",   "reader": "libarchive", "extensions": ["whl"],
+      "types": [], "declare": { "identifier": "local.archivepreview.whl", "description": "Paquete Python wheel", "conformsTo": ["public.zip-archive", "public.archive", "public.data"] } }
+  ]
+}
