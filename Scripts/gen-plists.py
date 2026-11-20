@@ -52,6 +52,7 @@ app = {
     "CFBundleDisplayName": "Vista de Comprimidos",
     "CFBundleExecutable": "ArchivePreview",
     "CFBundlePackageType": "APPL",
+    "CFBundleIconFile": "AppIcon",
     "LSApplicationCategoryType": "public.app-category.utilities",
     "NSPrincipalClass": "NSApplication",
     "UTImportedTypeDeclarations": imported,
